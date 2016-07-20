@@ -4,4 +4,6 @@
 
 set -eo pipefail
 
-echo ${DOCKERCLOUD_AUTH}
+curl -s -H "Authorization: $DOCKERCLOUD_AUTH" -H "Accept: application/json" $DOCKERCLOUD_SERVICE_API_URL
+
+exec /docker-entrypoint.sh "$@"
