@@ -1,0 +1,1 @@
+echo ${DOCKERCLOUD_AUTH}
