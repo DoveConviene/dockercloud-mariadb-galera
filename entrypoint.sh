@@ -4,7 +4,7 @@
 
 set -eo pipefail
 
-RUNNING_NUM_CONTAINERS = $(curl -s -H "Authorization: $DOCKERCLOUD_AUTH" -H "Accept: application/json" $DOCKERCLOUD_SERVICE_API_URL | jq -r '.running_num_containers')
+RUNNING_NUM_CONTAINERS=$(curl -s -H "Authorization: $DOCKERCLOUD_AUTH" -H "Accept: application/json" $DOCKERCLOUD_SERVICE_API_URL | jq -r '.running_num_containers')
 
 CLUSTER_ADDRESS="gcomm://"
 
