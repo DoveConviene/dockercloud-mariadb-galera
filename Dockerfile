@@ -1,7 +1,9 @@
 FROM mariadb:10.1
 
 RUN set -x \
-	&& apt-get update && apt-get install -y --no-install-recommends ca-certificates curl && rm -rf /var/lib/apt/lists/*
+	&& apt-get update && \
+	apt-get install -y --no-install-recommends ca-certificates curl jq && \
+	rm -rf /var/lib/apt/lists/*
 
 COPY entrypoint.sh /
 
