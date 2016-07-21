@@ -4,9 +4,12 @@
 
 set -eo pipefail
 
-RUNNING_NUM_CONTAINERS=$(curl -s -H "Authorization: $DOCKERCLOUD_AUTH" -H "Accept: application/json" $DOCKERCLOUD_SERVICE_API_URL | jq -r '.running_num_containers')
+echo ">> DOCKERCLOUD_SERVICE_API_URL"
+echo $(curl -s -H "Authorization: $DOCKERCLOUD_AUTH" -H "Accept: application/json" $DOCKERCLOUD_SERVICE_API_URL)
 
-WSREP_NODE_ADDRESS="gcomm://"
+RUNNING_NUM_CONTAINERS=$(curl -s -H "Authorization: $DOCKERCLOUD_AUTH" -H "Accept: application/json" $DOCKERCLOUD_SERVICE_API_URL | jq -r '.running_num_containers')
+echo ">> RUNNING_NUM_CONTAINERS: ${RUNNING_NUM_CONTAINERS}"
+WSREP_CLUSTER_ADDRESS="gcomm://"
 
 if [ "${RUNNING_NUM_CONTAINERS}" = 1 ]; then
 	set -- "$@" --wsrep-new-cluster
@@ -17,11 +20,12 @@ if [ "${RUNNING_NUM_CONTAINERS}" -gt 1 ]; then
 
 	for container_url in $(curl -s -H "Authorization: $DOCKERCLOUD_AUTH" -H "Accept: application/json" $DOCKERCLOUD_SERVICE_API_URL | jq -r '.containers[]'); do
 		for node_url in $(curl -s -H "Authorization: $DOCKERCLOUD_AUTH" -H "Accept: application/json" "$DOCKERCLOUD_REST_HOST$container_url"  | jq -r 'if .state == "Running" then .node else null end'); do
-			WSREP_NODE_ADDRESS+=$(curl -s -H "Authorization: $DOCKERCLOUD_AUTH" -H "Accept: application/json" "$DOCKERCLOUD_REST_HOST$node_url" | jq -r '.public_ip')
-			WSREP_NODE_ADDRESS+=","
+			WSREP_CLUSTER_ADDRESS+=$(curl -s -H "Authorization: $DOCKERCLOUD_AUTH" -H "Accept: application/json" "$DOCKERCLOUD_REST_HOST$node_url" | jq -r '.public_ip')
+			WSREP_CLUSTER_ADDRESS+=","
 		done
 	done
 fi
+echo ">> WSREP_CLUSTER_ADDRESS: ${WSREP_CLUSTER_ADDRESS}"
 
 echo '>> Creating Galera Config'
 export MYSQL_INITDB_SKIP_TZINFO="yes"
