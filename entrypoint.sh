@@ -4,30 +4,27 @@
 
 set -eo pipefail
 
-echo ">> DOCKERCLOUD_SERVICE_API_URL"
-echo $(curl -s -H "Authorization: $DOCKERCLOUD_AUTH" -H "Accept: application/json" $DOCKERCLOUD_SERVICE_API_URL)
 
-RUNNING_NUM_CONTAINERS=$(curl -s -H "Authorization: $DOCKERCLOUD_AUTH" -H "Accept: application/json" $DOCKERCLOUD_SERVICE_API_URL | jq -r '.running_num_containers')
-echo ">> RUNNING_NUM_CONTAINERS: ${RUNNING_NUM_CONTAINERS}"
+echo ">> Contacting DockerCloud Service API"
+MARIADB_SERVICE_API_OUTPUT=$(curl -s -H "Authorization: $DOCKERCLOUD_AUTH" -H "Accept: application/json" $DOCKERCLOUD_SERVICE_API_URL)
+echo "${MARIADB_SERVICE_API_OUTPUT}"
+
+CURRENT_NUM_CONTAINERS=$(${MARIADB_SERVICE_API_OUTPUT} | jq -r '.current_num_containers')
 WSREP_CLUSTER_ADDRESS="gcomm://"
 
-if [ "${RUNNING_NUM_CONTAINERS}" = 1 ]; then
+if [ "${CURRENT_NUM_CONTAINERS}" = 1 ]; then
+	echo ">> Marvin: I'm alone. I'll try to bootstrap the cluster..."
 	set -- "$@" --wsrep-new-cluster
 fi
 
-if [ "${RUNNING_NUM_CONTAINERS}" -gt 1 ]; then
+if [ "${CURRENT_NUM_CONTAINERS}" -gt 1 ]; then
 	mkdir -p /var/lib/mysql/mysql && chown -R mysql:mysql /var/lib/mysql/mysql
-
-	for container_url in $(curl -s -H "Authorization: $DOCKERCLOUD_AUTH" -H "Accept: application/json" $DOCKERCLOUD_SERVICE_API_URL | jq -r '.containers[]'); do
-		for node_url in $(curl -s -H "Authorization: $DOCKERCLOUD_AUTH" -H "Accept: application/json" "$DOCKERCLOUD_REST_HOST$container_url"  | jq -r 'if .state == "Running" then .node else null end'); do
-			WSREP_CLUSTER_ADDRESS+=$(curl -s -H "Authorization: $DOCKERCLOUD_AUTH" -H "Accept: application/json" "$DOCKERCLOUD_REST_HOST$node_url" | jq -r '.public_ip')
-			WSREP_CLUSTER_ADDRESS+=","
-		done
-	done
+	WSREP_CLUSTER_ADDRESS+=${DOCKERCLOUD_SERVICE_HOSTNAME}:4567
+	echo "Marvin: I'm not alone. I'll try to join my buddies at ${WSREP_CLUSTER_ADDRESS}"
+	set -- "$@" --wsrep-cluster-address="${WSREP_CLUSTER_ADDRESS}"
 fi
-echo ">> WSREP_CLUSTER_ADDRESS: ${WSREP_CLUSTER_ADDRESS}"
 
-echo '>> Creating Galera Config'
+echo '>> Generating Galera Config'
 export MYSQL_INITDB_SKIP_TZINFO="yes"
 export MYSQL_ALLOW_EMPTY_PASSWORD="yes"
 
@@ -45,7 +42,7 @@ wsrep_on="on"
 wsrep_provider="${WSREP_PROVIDER:-/usr/lib/libgalera_smm.so}"
 wsrep_provider_options="${WSREP_PROVIDER_OPTIONS}"
 wsrep_cluster_address="${WSREP_CLUSTER_ADDRESS}"
-wsrep_cluster_name="${WSREP_CLUSTER_NAME:-my_wsrep_cluster}"
+wsrep_cluster_name="${WSREP_CLUSTER_NAME:-42}"
 wsrep_sst_auth="${WSREP_SST_AUTH}"
 wsrep_sst_method="${WSREP_SST_METHOD:-rsync}"
 EOF
