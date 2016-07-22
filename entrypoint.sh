@@ -9,15 +9,15 @@ echo ">> Contacting DockerCloud Service API"
 MARIADB_SERVICE_API_OUTPUT=$(curl -s -H "Authorization: $DOCKERCLOUD_AUTH" -H "Accept: application/json" $DOCKERCLOUD_SERVICE_API_URL)
 echo "${MARIADB_SERVICE_API_OUTPUT}"
 
-CURRENT_NUM_CONTAINERS=$(echo "${MARIADB_SERVICE_API_OUTPUT}" | jq -r '.current_num_containers')
+RUNNING_NUM_CONTAINERS=$(echo "${MARIADB_SERVICE_API_OUTPUT}" | jq -r '.running_num_containers')
 WSREP_CLUSTER_ADDRESS="gcomm://"
 
-if [ "${CURRENT_NUM_CONTAINERS}" = 1 ]; then
+if [ "${RUNNING_NUM_CONTAINERS}" = 0 ]; then
 	echo ">> Marvin: I'm alone. I'll try to bootstrap the cluster..."
 	set -- "$@" --wsrep-new-cluster
 fi
 
-if [ "${CURRENT_NUM_CONTAINERS}" -gt 1 ]; then
+if [ "${RUNNING_NUM_CONTAINERS}" -gt 0 ]; then
 	mkdir -p /var/lib/mysql/mysql && chown -R mysql:mysql /var/lib/mysql/mysql
 	WSREP_CLUSTER_ADDRESS+=${DOCKERCLOUD_SERVICE_HOSTNAME}:4567
 	echo "Marvin: I'm not alone. I'll try to join my buddies at ${WSREP_CLUSTER_ADDRESS}"
