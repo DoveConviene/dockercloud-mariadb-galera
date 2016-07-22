@@ -9,7 +9,7 @@ echo ">> Contacting DockerCloud Service API"
 MARIADB_SERVICE_API_OUTPUT=$(curl -s -H "Authorization: $DOCKERCLOUD_AUTH" -H "Accept: application/json" $DOCKERCLOUD_SERVICE_API_URL)
 echo "${MARIADB_SERVICE_API_OUTPUT}"
 
-CURRENT_NUM_CONTAINERS=$(${MARIADB_SERVICE_API_OUTPUT} | jq -r '.current_num_containers')
+CURRENT_NUM_CONTAINERS=$(echo "${MARIADB_SERVICE_API_OUTPUT}" | jq -r '.current_num_containers')
 WSREP_CLUSTER_ADDRESS="gcomm://"
 
 if [ "${CURRENT_NUM_CONTAINERS}" = 1 ]; then
